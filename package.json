@@ -1,0 +1,30 @@
+{
+  "name": "wetsaw",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "example": "example"
+  },
+  "dependencies": {
+    "global-mercator": "^3.0.3",
+    "mapnik": "^4.2.1",
+    "tilebelt": "^1.0.1"
+  },
+  "devDependencies": {
+    "mocha": "^5.2.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "map",
+    "tiles",
+    "osm",
+    "openstreetmap",
+    "mapnik",
+    "xyz"
+  ],
+  "author": "Robert St. John",
+  "license": "MIT"
+}

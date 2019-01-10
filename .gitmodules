@@ -1,0 +1,4 @@
+[submodule "node-mapnik-sample-code"]
+	path = node-mapnik-sample-code
+	url = https://github.com/mapnik/node-mapnik-sample-code.git
+	branch = master
