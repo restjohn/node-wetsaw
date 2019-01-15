@@ -1,7 +1,6 @@
 const fs = require('fs');
 const mapnik = require('mapnik');
-const mapTiles = require('global-mercator');
-const MetaTile = require('./meta-tiles');
+const MetaTile = require('./meta-tile');
 
 mapnik.register_default_fonts();
 mapnik.register_default_input_plugins();
