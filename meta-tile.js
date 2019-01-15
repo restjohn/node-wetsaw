@@ -80,6 +80,13 @@ class MetaTile {
    * @param {number} upperLeftY the Y coordinate of the upper left XYZ tile defining the meta-tile
    */
   constructor(upperLeftX, upperLeftY, zoom) {
+    if (upperLeftX < 0 || upperLeftY < 0 ||
+      zoom < 0 || !Number.isInteger(zoom) || zoom < 3 ||
+      // multiples of 8 have no bits set below the 4th (2^8)
+      upperLeftX >> 3 << 3 != upperLeftX ||
+      upperLeftY >> 3 << 3 != upperLeftY) {
+      throw Error('invalid meta-tile origin ' + [upperLeftX, upperLeftY, zoom]);
+    }
     this.x = upperLeftX;
     this.y = upperLeftY;
     this.zoom = zoom;
