@@ -23,7 +23,8 @@
     "osm",
     "openstreetmap",
     "mapnik",
-    "xyz"
+    "xyz",
+    "meta-tile"
   ],
   "author": "Robert St. John",
   "license": "MIT"
