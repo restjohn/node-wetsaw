@@ -1,7 +1,7 @@
 const fs = require('fs');
 const mapnik = require('mapnik');
 const mapTiles = require('global-mercator');
-const tilebelt = require('tilebelt');
+const MetaTile = require('./meta-tiles');
 
 mapnik.register_default_fonts();
 mapnik.register_default_input_plugins();
@@ -41,8 +41,11 @@ mapnik.register_default_input_plugins();
 //   });
 // });
 
-const bboxIn = [178, 0, -179, 2];
-const minZoom = 13, maxZoom = 13;
+// const bboxIn = [178, 0, -179, 2];
+// const bboxIn = [-180, 40.94, -174.37, 66.52];
+// const bboxIn = [-180, 40.94, -174.37, 66.51];
+const bboxIn = [-135.55, 66.28, -134.49, 66.72];
+const minZoom = 6, maxZoom = 6;
 const metaTiles = { zoomLevels: [], bbox: bboxIn };
 const [xMin, yMin, xMax, yMax] = bboxIn;
 if (yMin >= yMax) {
@@ -62,30 +65,8 @@ while (zoom-- > minZoom) {
   const zoomKey = String(zoom);
   const zoomMetaTiles = metaTiles[zoomKey] = metaTiles[zoomKey] || [];
   bboxNormalized.forEach(bbox => {
-    console.log('bbox: ' + bbox);
-    const [normXMin, normYMin, normXMax, normYMax] = bbox;
-    const ulTile = mapTiles.lngLatToGoogle([normXMin, normYMax], zoom);
-    const lrTile = mapTiles.lngLatToGoogle([normXMax, normYMin], zoom);
-    console.log('upper left: ' + ulTile + ' lower right: ' + lrTile);
-    /*
-    This bitwise operation computes the left-most and upper-most 256-pixel, XYZ tile
-    of the 8x8 meta-tile.  This works because ANDing the XYZ tile coordinate with -8
-    (32-bit two's complement 11111111111111111111111111111000) forces the last 3 bits
-    in the tile coordinate to 0, which produces the greatest multiple of 8 less than
-    the given XYZ coordinate, which would be the left/upper-most XYZ coordinate of
-    the 8x8 meta-tile containing the XYZ tile.
-     */
-    const ulMetaTile = [ulTile[0] & -8, ulTile[1] & -8];
-    const lrMetaTile = [lrTile[0] & -8, lrTile[1] & -8];
-    console.log('ul meta: ' + ulMetaTile + ' lr meta: ' + lrMetaTile);
-    for (let x = ulMetaTile[0]; x <= lrMetaTile[0]; x += 8) {
-      for (let y = ulMetaTile[1]; y <= lrMetaTile[1]; y += 8) {
-        const ulBbox = mapTiles.googleToBBox([x, y, zoom]);
-        const lrBbox = mapTiles.googleToBBox([x + 7, y + 7, zoom]);
-        const metaBbox = [ulBbox[0], lrBbox[1], lrBbox[2], ulBbox[3]];
-        console.log('ul box: ' + ulBbox + ' lr box: ' + lrBbox);
-        zoomMetaTiles.push({ "zoom": zoom, "bbox": metaBbox, "uppperLeftXYZ": [x, y] });
-      }
+    for (let mt of MetaTile.metaTilesIntersectingBbox(...bbox, zoom)) {
+      zoomMetaTiles.push(mt);
     }
   });
 }
@@ -93,6 +74,6 @@ while (zoom-- > minZoom) {
 metaTiles.zoomLevels.forEach(zoom => {
   console.log('='.repeat(32) + '\n zoom level ' + zoom + '\n' + '='.repeat(32));
   metaTiles[String(zoom)].forEach(tile => {
-    console.log('meta-tile at zoom ' + tile.zoom + '; upper-left ' + tile.uppperLeftXYZ + '; bbox ' + tile.bbox);
+    console.log('meta-tile at zoom ' + tile.zoom + '; upper-left ' + [tile.x, tile.y] + '; bbox ' + tile.bboxMeters());
   });
 });
