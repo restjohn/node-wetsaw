@@ -78,4 +78,43 @@ describe('MetaTile', function() {
     expect(xMax).to.be.closeTo(626173, 1);
     expect(yMax).to.be.closeTo(5009378, 1);
   });
+
+  describe('bounding box validation', function() {
+
+    it('throws an error if min x is greater than or equal to max x', function() {
+
+      expect(function() {
+        MetaTile.metaTilesIntersectingBbox(179, 0, -179, 1, 1);
+      }).to.throw();
+
+      expect(function() {
+        MetaTile.metaTilesIntersectingBbox(170, 0, 170, 1, 1);
+      }).to.throw();
+    });
+
+    it('throws an error if min y is greater than or equal to max y', function() {
+
+      expect(function() {
+        MetaTile.metaTilesIntersectingBbox(0, -38, 1, -39, 1);
+      }).to.throw();
+
+      expect(function() {
+        MetaTile.metaTilesIntersectingBbox(0, 0, 1, 0, 1);
+      }).to.throw();
+    });
+
+    it('throws an error if the zoom level is less than 3', function() {
+
+      expect(function() {
+        MetaTile.metaTilesIntersectingBbox(1, 1, 2, 2, 2);
+      }).to.throw();
+    });
+
+    it('throws an error if the zoom level is not an integer', function() {
+
+      expect(function() {
+        MetaTile.metaTilesIntersectingBbox(1, 1, 2, 2, 3.1);
+      }).to.throw();
+    });
+  });
 });
