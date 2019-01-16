@@ -82,7 +82,7 @@ class MetaTile {
   constructor(upperLeftX, upperLeftY, zoom) {
     if (upperLeftX < 0 || upperLeftY < 0 ||
       zoom < 0 || !Number.isInteger(zoom) || zoom < 3 ||
-      // multiples of 8 have no bits set below the 4th (2^8)
+      // multiples of 8 have no bits set below the 4th bit (2^8)
       upperLeftX >> 3 << 3 != upperLeftX ||
       upperLeftY >> 3 << 3 != upperLeftY) {
       throw Error('invalid meta-tile origin ' + [upperLeftX, upperLeftY, zoom]);
@@ -90,6 +90,10 @@ class MetaTile {
     this.x = upperLeftX;
     this.y = upperLeftY;
     this.zoom = zoom;
+  }
+
+  toString() {
+    return 'MetaTile(' + this.x + ', ' + this.y + ', ' + this.zoom + ')';
   }
 
   /**

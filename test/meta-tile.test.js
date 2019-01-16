@@ -37,4 +37,27 @@ describe('MetaTile', function() {
       }
     });
   });
+
+  it('provides useful toString()', function() {
+
+    let meta = new MetaTile(8, 24, 9);
+
+    expect(meta.toString()).to.eq('MetaTile(8, 24, 9)');
+  });
+
+  it('yields 64 xyz tiles', function() {
+
+    for (let zoom = 3; zoom < 10; zoom++) {
+      for (let x = 0; x < 1 << zoom; x += 8) {
+        for (let y = 0; y < 1 << zoom; y += 8) {
+          let meta = new MetaTile(x, y, zoom);
+          let count = 0;
+          for (let tile of meta.xyzTiles()) {
+            count++;
+          }
+          expect(count, meta.toString()).to.eq(64);
+        }
+      }
+    }
+  });
 });
