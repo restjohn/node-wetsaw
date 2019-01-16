@@ -8,8 +8,7 @@
   },
   "dependencies": {
     "global-mercator": "^3.0.3",
-    "mapnik": "^4.2.1",
-    "tilebelt": "^1.0.1"
+    "mapnik": "^4.2.1"
   },
   "devDependencies": {
     "chai": "^4.2.0",
