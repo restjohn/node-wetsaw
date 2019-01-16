@@ -60,4 +60,22 @@ describe('MetaTile', function() {
       }
     }
   });
+
+  it('provides the correct bounding box for the meta-tile', function() {
+
+    const meta = new MetaTile(256, 192, 9);
+    const [xMin, yMin, xMax, yMax] = meta.bboxMeters();
+
+    /*
+    these expected coordinates come from manually drawing a bounding box
+    using the GEOFABRIK tool around the appropriate tiles:
+    http://tools.geofabrik.de/calc/#type=geofabrik_standard&bbox=0.000002,36.59789,5.625002,40.979899&tab=1&grid=1&proj=EPSG:3857
+    it seems wrong to test by using the same method and library as MetaTile
+    (i.e., global-mercator) to generate the expected values.
+    */
+    expect(xMin).to.be.closeTo(0, 0);
+    expect(yMin).to.be.closeTo(4383205, 1);
+    expect(xMax).to.be.closeTo(626173, 1);
+    expect(yMax).to.be.closeTo(5009378, 1);
+  });
 });
