@@ -1,14 +1,15 @@
 {
   "name": "wetsaw",
   "version": "1.0.0",
-  "description": "",
+  "description": "Build XYZ map tile caches.",
   "main": "index.js",
   "directories": {
     "example": "example"
   },
   "dependencies": {
     "global-mercator": "^3.0.3",
-    "mapnik": "^4.2.1"
+    "mapnik": "^4.2.1",
+    "sharp": "^0.21.2"
   },
   "devDependencies": {
     "chai": "^4.2.0",
