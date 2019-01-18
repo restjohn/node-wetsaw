@@ -9,6 +9,8 @@
   "dependencies": {
     "global-mercator": "^3.0.3",
     "mapnik": "^4.2.1",
+    "mapnik-pool": "^0.1.3",
+    "mkdirp": "^0.5.1",
     "sharp": "^0.21.2"
   },
   "devDependencies": {
