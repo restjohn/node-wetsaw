@@ -59,9 +59,9 @@ class MetaTile {
    * @param {number} north northern latitude of the bounding box
    * @param {number} zoom integral XYZ zoom level
    * @yields {MetaTile}
-   * @throws
+   * @throws {Error}
    */
-  static metaTilesIntersectingBbox(west, south, east, north, zoom) {
+  static metaTilesIntersectingBBox(west, south, east, north, zoom) {
     if (east <= west || north <= south) {
       throw new Error('invalid bounding box: ' + [west, south, east, north]);
     }
@@ -69,13 +69,20 @@ class MetaTile {
       throw new Error('invalid zoom level: ' + zoom);
     }
     return (function *() {
+      const numTiles = 1 << zoom;
       const ulTile = mapTiles.lngLatToGoogle([west, north], zoom);
       const lrTile = mapTiles.lngLatToGoogle([east, south], zoom);
       const ulMetaTile = MetaTile.metaOriginXYZForXYZ(...ulTile);
       const lrMetaTile = MetaTile.metaOriginXYZForXYZ(...lrTile);
+      // cover the case of a tile region that starts west of -180 and ends east of -180
+      let xStart = ulMetaTile[0];
+      let xEnd = lrMetaTile[0];
+      if (xStart > xEnd) {
+        xEnd = xStart + (numTiles - xStart + xEnd);
+      }
       for (let y = ulMetaTile[1]; y <= lrMetaTile[1]; y += 8) {
-        for (let x = ulMetaTile[0]; x <= lrMetaTile[0]; x += 8) {
-          yield new MetaTile(x, y, zoom);
+        for (let x = xStart; x <= xEnd; x += 8) {
+          yield new MetaTile(x % numTiles, y, zoom);
         }
       }
     })();

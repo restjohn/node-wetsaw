@@ -79,42 +79,84 @@ describe('MetaTile', function() {
     expect(yMax).to.be.closeTo(5009378, 1);
   });
 
+  it('yields the correct meta-tiles for a normal bounding box', function() {
+
+    // (208, 384)
+    const expected = {
+      '10': [new MetaTile(208, 384, 10)],
+      '11': [new MetaTile(424, 768, 11), new MetaTile(424, 776, 11)],
+      '12': [new MetaTile(848, 1544, 12), new MetaTile(856, 1544, 12), new MetaTile(848, 1552, 12), new MetaTile(856, 1552, 12)]
+    };
+
+    const zoom10Tiles = Array.from(MetaTile.metaTilesIntersectingBBox(-105.3101, 39.5263, -104.6399, 40.0225, 10));
+    const zoom11Tiles = Array.from(MetaTile.metaTilesIntersectingBBox(-105.3101, 39.5263, -104.6399, 40.0225, 11));
+    const zoom12Tiles = Array.from(MetaTile.metaTilesIntersectingBBox(-105.3101, 39.5263, -104.6399, 40.0225, 12));
+
+    expect(zoom10Tiles).to.deep.equal(expected['10']);
+    expect(zoom11Tiles).to.deep.equal(expected['11']);
+    expect(zoom12Tiles).to.deep.equal(expected['12']);
+  });
+
+  it('yields the correct meta-tiles for a bounding box crossing 180 or -180 longitude', function() {
+
+    // same bounding box expressed using coordinates relative to 180 and -180
+    const eastOverflow = Array.from(MetaTile.metaTilesIntersectingBBox(160.6275, 65.083, 199.3217, 74.8175, 8));
+    const westUnderflow = Array.from(MetaTile.metaTilesIntersectingBBox(-199.3725, 65.083, -160.6783, 74.8175, 8));
+    const expected = [
+      new MetaTile(240, 40, 8), new MetaTile(248, 40, 8), new MetaTile(0, 40, 8), new MetaTile(8, 40, 8),
+      new MetaTile(240, 48, 8), new MetaTile(248, 48, 8), new MetaTile(0, 48, 8), new MetaTile(8, 48, 8),
+      new MetaTile(240, 56, 8), new MetaTile(248, 56, 8), new MetaTile(0, 56, 8), new MetaTile(8, 56, 8),
+      new MetaTile(240, 64, 8), new MetaTile(248, 64, 8), new MetaTile(0, 64, 8), new MetaTile(8, 64, 8)
+    ];
+
+    expect(eastOverflow).to.have.deep.ordered.members(expected);
+    expect(westUnderflow).to.have.deep.ordered.members(expected);
+  });
+
   describe('bounding box validation', function() {
 
     it('throws an error if min x is greater than or equal to max x', function() {
 
       expect(function() {
-        MetaTile.metaTilesIntersectingBbox(179, 0, -179, 1, 1);
+        MetaTile.metaTilesIntersectingBBox(179, 0, -179, 1, 1);
       }).to.throw();
 
       expect(function() {
-        MetaTile.metaTilesIntersectingBbox(170, 0, 170, 1, 1);
+        MetaTile.metaTilesIntersectingBBox(170, 0, 170, 1, 1);
       }).to.throw();
     });
 
     it('throws an error if min y is greater than or equal to max y', function() {
 
       expect(function() {
-        MetaTile.metaTilesIntersectingBbox(0, -38, 1, -39, 1);
+        MetaTile.metaTilesIntersectingBBox(0, -38, 1, -39, 1);
       }).to.throw();
 
       expect(function() {
-        MetaTile.metaTilesIntersectingBbox(0, 0, 1, 0, 1);
+        MetaTile.metaTilesIntersectingBBox(0, 0, 1, 0, 1);
       }).to.throw();
     });
 
     it('throws an error if the zoom level is less than 3', function() {
 
       expect(function() {
-        MetaTile.metaTilesIntersectingBbox(1, 1, 2, 2, 2);
+        MetaTile.metaTilesIntersectingBBox(1, 1, 2, 2, 2);
       }).to.throw();
     });
 
     it('throws an error if the zoom level is not an integer', function() {
 
       expect(function() {
-        MetaTile.metaTilesIntersectingBbox(1, 1, 2, 2, 3.1);
+        MetaTile.metaTilesIntersectingBBox(1, 1, 2, 2, 3.1);
       }).to.throw();
     });
+
+    it('accepts a bounding box crossing 180 longitude without error', function() {
+
+      MetaTile.metaTilesIntersectingBBox(-181, 1, -179, 2, 4);
+      MetaTile.metaTilesIntersectingBBox(179, 1, 181, 2, 4);
+    });
+
+
   });
 });
