@@ -156,7 +156,5 @@ describe('MetaTile', function() {
       MetaTile.metaTilesIntersectingBBox(-181, 1, -179, 2, 4);
       MetaTile.metaTilesIntersectingBBox(179, 1, 181, 2, 4);
     });
-
-
   });
 });
