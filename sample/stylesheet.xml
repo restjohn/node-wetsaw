@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Map srs="+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over" background-color="blue">
+
+    <Style name="style">
+        <Rule>
+            <PolygonSymbolizer fill="green" />
+            <LineSymbolizer stroke="grey" stroke-width=".2" />
+        </Rule>
+    </Style>
+
+    <Layer name="world" srs="+proj=longlat +datum=WGS84 +no_defs">
+        <StyleName>style</StyleName>
+        <Datasource>
+            <Parameter name="type">shape</Parameter>
+            <Parameter name="file">ne_50m_land/ne_50m_land.shp</Parameter>
+            <Parameter name="encoding">iso-8859-1</Parameter>
+        </Datasource>
+    </Layer>
+
+</Map>
