@@ -20,11 +20,14 @@ if (help || !(bbox && Number.isInteger(minZoom) && Number.isInteger(maxZoom))) {
   process.exit(0);
 }
 
-const MetaTile = require('./meta-tile');
+
 const fs = require('fs');
+const mkdirp = require('mkdirp');
 const path = require('path');
+
+const MetaTile = require('./meta-tile');
+
 const mapnik = require('mapnik');
-// const mkdirp = require('mkdirp');
 const mapnikPool = require('mapnik-pool')(mapnik);
 const mapTiles = require('global-mercator');
 const gpkgUtil = require('@ngageoint/geopackage');
@@ -44,6 +47,7 @@ function gpkgBBoxForSWNE(west, south, east, north) {
 const stylePath = path.resolve(untildify(style));
 const styleDir = path.dirname(stylePath);
 const gpkgPath = path.resolve(untildify(gpkg)) + (/\.gpkg$/.test(gpkg) ? '' : '.gpkg');
+const gpkgDir = path.dirname(gpkgPath);
 const tableName = table || path.basename(gpkgPath).slice(0, -5);
 
 const matrixSetBounds = gpkgBBoxForSWNE(...mapTiles.tileToBBoxMeters([0, 0, 0]));
@@ -80,7 +84,7 @@ const cutXYZTiles = function(metaTile, metaImage, geoPackage) {
       console.log('adding tile ' + [x, y, metaTile.zoom]);
       const tileDao = geoPackage.getTileDao(tableName);
       if (tileDao.queryForTile(x, y, metaTile.zoom)) {
-        console.log(tableName + ' already contains tile ' + [x, y, metaTile.zoom]);
+        console.log('table ' + tableName + ' already contains tile ' + [x, y, metaTile.zoom]);
       }
       else {
         geoPackage.addTile(buffer, tableName, metaTile.zoom, y, x);
@@ -104,6 +108,8 @@ mapPool.acquireMap = function() {
     });
   });
 }.bind(mapPool);
+
+mkdirp.sync(gpkgDir);
 
 gpkgUtil.create(gpkgPath)
 .then(gpkg => gpkg, err => {
