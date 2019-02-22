@@ -20,7 +20,6 @@ if (help || !(bbox && Number.isInteger(minZoom) && Number.isInteger(maxZoom))) {
   process.exit(0);
 }
 
-
 const fs = require('fs');
 const mkdirp = require('mkdirp');
 const path = require('path');
@@ -66,12 +65,6 @@ const allMetaTiles = function* () {
   }
 };
 
-/**
- *
- * @param {MetaTile} metaTile the meta-tile to cut
- * @param {mapnik.Image} metaImage Mapnik `Image` of a meta-tile
- * @param {geopackageApi.GeoPackage} geoPackage the GeoPackage target for the XYZ tiles
- */
 const cutXYZTiles = function(metaTile, metaImage, geoPackage) {
   for (let tile of metaTile.xyzTiles()) {
     const [x, y] = tile;
@@ -93,6 +86,30 @@ const cutXYZTiles = function(metaTile, metaImage, geoPackage) {
   }
 };
 
+const addTileMatrixSetInGeoPackage = function(gpkg) {
+  if (gpkg.hasTileTable(tableName)) {
+    const missingZoomLevels = {};
+    for (let zoom = minZoom; zoom <= maxZoom; zoom++) {
+      missingZoomLevels[zoom] = null;
+    }
+    const tileDao = gpkg.getTileDao(tableName);
+    tileDao.tileMatrices.forEach(matrix => {
+      if (matrix.zoom_level in missingZoomLevels) {
+        delete missingZoomLevels[matrix.zoom_level];
+      }
+    });
+    for (let zoom in missingZoomLevels) {
+      gpkg.createStandardWebMercatorTileMatrix(matrixSetBounds, tileDao.tileMatrixSet, zoom, zoom, tileSize);
+    }
+    return Promise.resolve(gpkg);
+  }
+  return gpkgUtil.createStandardWebMercatorTileTable(gpkg, tableName, contentsBounds, 3857, matrixSetBounds, 3857, minZoom, maxZoom, tileSize)
+    .catch(err => {
+      throw err;
+    })
+    .then(_ => gpkg);
+};
+
 const mapPool = mapnikPool.fromString(fs.readFileSync(stylePath, 'utf-8'), { size: metaTileSize, bufferSize: 0 }, { base: styleDir });
 mapPool.acquireMap = function() {
   return new Promise(function(resolve, reject) {
@@ -110,43 +127,36 @@ mapPool.acquireMap = function() {
 mkdirp.sync(gpkgDir);
 
 gpkgUtil.create(gpkgPath)
-.then(gpkg => gpkg, err => {
-  console.log('error opening geopackage: ' + err);
-  throw err;
-})
-.then(gpkg => {
-  if (gpkg.hasTileTable(tableName)) {
-    return gpkg;
-  }
-  return gpkgUtil.createStandardWebMercatorTileTable(gpkg, tableName, contentsBounds, 3857, matrixSetBounds, 3857, minZoom, maxZoom, tileSize)
-  .catch(err => {
+  .then(gpkg => gpkg, err => {
+    console.log('error opening geopackage: ' + err);
     throw err;
   })
-  .then(_ => gpkg);
-})
-.then(gpkg => {
-  for (let metaTile of allMetaTiles()) {
-    mapPool.acquireMap()
-    .then(function(map) {
-      map.zoomToBox(metaTile.bboxMeters());
-      const im = new mapnik.Image(metaTileSize, metaTileSize);
-      return new Promise(function(resolve, reject) {
-        map.render(im, {scale: scale, variables: {zoom: metaTile.zoom}}, function(err, im) {
-          mapPool.release(map);
-          if (err) {
-            reject(err);
-          }
-          else {
-            resolve(im);
-          }
+  .then(gpkg => {
+    return addTileMatrixSetInGeoPackage(gpkg);
+  })
+  .then(gpkg => {
+    for (let metaTile of allMetaTiles()) {
+      mapPool.acquireMap()
+      .then(function(map) {
+        map.zoomToBox(metaTile.bboxMeters());
+        const im = new mapnik.Image(metaTileSize, metaTileSize);
+        return new Promise((resolve, reject) => {
+          map.render(im, {scale: scale, variables: {zoom: metaTile.zoom}}, (err, im) => {
+            mapPool.release(map);
+            if (err) {
+              reject(err);
+            }
+            else {
+              resolve(im);
+            }
+          });
         });
       })
-    })
-    .catch(err => {
-      throw err;
-    })
-    .then(mapnikImage => {
-      return cutXYZTiles(metaTile, mapnikImage, gpkg);
-    });
-  }
-});
+      .catch(err => {
+        throw err;
+      })
+      .then(mapnikImage => {
+        return cutXYZTiles(metaTile, mapnikImage, gpkg);
+      });
+    }
+  });
