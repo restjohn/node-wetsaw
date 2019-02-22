@@ -93,9 +93,7 @@ const cutXYZTiles = function(metaTile, metaImage, geoPackage) {
   }
 };
 
-// resolve relative resource references in mapnik stylesheet
-process.chdir(styleDir);
-const mapPool = mapnikPool.fromString(fs.readFileSync(stylePath, 'utf-8'), { size: metaTileSize, bufferSize: 0 });
+const mapPool = mapnikPool.fromString(fs.readFileSync(stylePath, 'utf-8'), { size: metaTileSize, bufferSize: 0 }, { base: styleDir });
 mapPool.acquireMap = function() {
   return new Promise(function(resolve, reject) {
     mapPool.acquire(function(err, map) {
