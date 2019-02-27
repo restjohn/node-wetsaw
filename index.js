@@ -8,12 +8,14 @@ const commandLineOptions = [
   { name: 'zmax', type: parseInt, description: 'XYZ tile map maximum zoom level', typeLabel: '<int>' },
   { name: 'style', description: 'path to the Mapnik XML style document' },
   { name: 'gpkg', description: 'path to the GeoPackage file to create or update', defaultValue: 'tiles.gpkg' },
-  { name: 'table', description: 'name of the tile table create in the GeoPackage; defaults to the basename of the GeoPackage file without the .gpkg extension' },
+  { name: 'table', description: 'name of the tile table to create in the GeoPackage; defaults to the basename of the GeoPackage file without the .gpkg extension' },
+  { name: 'table-label', description: 'human-readable short name of the tile table; the contents table \'identifier\' column' },
+  { name: 'table-desc', description: 'human-readable description of the tile table; the contents table \'description\' column' },
   { name: 'scale', type: parseFloat, typeLabel: '<float>', description: 'scale to apply to the tile images; the output tile size will be the scale * 256', defaultValue: 1.0 }
 ];
 
 const args = commandLineArgs(commandLineOptions, { camelCase: true });
-const { help, bbox, zmin: minZoom, zmax: maxZoom, style, gpkg, table, scale } = args;
+const { help, bbox, zmin: minZoom, zmax: maxZoom, style, gpkg, table, tableLabel, tableDesc, scale } = args;
 
 if (help || !(bbox && Number.isInteger(minZoom) && Number.isInteger(maxZoom))) {
   console.log(commandLineUsage([{ header: 'Usage:', optionList: commandLineOptions }]));
@@ -110,6 +112,25 @@ const addTileMatrixSetInGeoPackage = function(gpkg) {
     .then(_ => gpkg);
 };
 
+const setContentsAttrs = function(gpkg) {
+  if (!tableLabel && !tableDesc) {
+    return gpkg;
+  }
+  const contentsDao = gpkg.getContentsDao();
+  const contents = contentsDao.queryForId(tableName);
+  if (tableLabel) {
+    contents.identifier = tableLabel;
+  }
+  if (tableDesc) {
+    contents.description = tableDesc;
+  }
+  const result = contentsDao.update(contents);
+  if (result.changes != 1) {
+    console.log('warning: failed to set contents label/description; ' + result.changes + ' contents rows affected');
+  }
+  return gpkg;
+};
+
 const mapPool = mapnikPool.fromString(fs.readFileSync(stylePath, 'utf-8'), { size: metaTileSize, bufferSize: 0 }, { base: styleDir });
 mapPool.acquireMap = function() {
   return new Promise(function(resolve, reject) {
@@ -133,6 +154,9 @@ gpkgUtil.create(gpkgPath)
   })
   .then(gpkg => {
     return addTileMatrixSetInGeoPackage(gpkg);
+  })
+  .then(gpkg => {
+    return setContentsAttrs(gpkg);
   })
   .then(gpkg => {
     for (let metaTile of allMetaTiles()) {
