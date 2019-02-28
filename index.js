@@ -68,6 +68,7 @@ const allMetaTiles = function* () {
 };
 
 const cutXYZTiles = function(metaTile, metaImage, geoPackage) {
+  const tileDao = geoPackage.getTileDao(tableName);
   for (let tile of metaTile.xyzTiles()) {
     const [x, y] = tile;
     const px = (x - metaTile.x) * tileSize;
@@ -77,7 +78,6 @@ const cutXYZTiles = function(metaTile, metaImage, geoPackage) {
         throw err;
       }
       console.log('adding tile ' + [x, y, metaTile.zoom]);
-      const tileDao = geoPackage.getTileDao(tableName);
       if (tileDao.queryForTile(x, y, metaTile.zoom)) {
         console.log('table ' + tableName + ' already contains tile ' + [x, y, metaTile.zoom]);
       }
