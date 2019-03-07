@@ -14,7 +14,8 @@
     "mapnik": "^4.2.1",
     "mapnik-pool": "^0.1.3",
     "mkdirp": "^0.5.1",
-    "untildify": "^3.0.3"
+    "untildify": "^3.0.3",
+    "xsltproc": "0.0.4"
   },
   "devDependencies": {
     "chai": "^4.2.0",
@@ -33,5 +34,9 @@
     "meta-tile"
   ],
   "author": "Robert St. John",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/restjohn/node-wetsaw"
+  }
 }

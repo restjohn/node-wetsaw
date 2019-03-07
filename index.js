@@ -1,12 +1,30 @@
 const commandLineArgs = require('command-line-args');
 const commandLineUsage = require('command-line-usage');
 
+const parseXsltParam = function(pair) {
+  if (!pair) {
+    throw 'invalid xslt-param';
+  }
+  const sep = pair.indexOf(':');
+  if (sep < 0) {
+    throw 'invalid xslt-param: ' + pair;
+  }
+  const name = pair.substring(0, sep);
+  let value = pair.substring(sep + 1);
+  if (value.startsWith('env.')) {
+    value = process.env[value.substring(4)];
+  }
+  return { key: name, val: value };
+};
+
 const commandLineOptions = [
   { name: 'help', type: Boolean, description: 'display this help message' },
   { name: 'bbox', type: parseFloat, typeLabel: '<float>', multiple: true, description: 'bounding box in longitude/latitude values separated by spaces, <west> <south> <east> <north>' },
   { name: 'zmin', type: parseInt, description: 'XYZ tile map minimum zoom level', typeLabel: '<int>' },
   { name: 'zmax', type: parseInt, description: 'XYZ tile map maximum zoom level', typeLabel: '<int>' },
   { name: 'style', description: 'path to the Mapnik XML style document' },
+  { name: 'style-xslt', description: 'path to an XML Stylesheet Language Transform (XSLT) document to transform the Mapnik XML style document' },
+  { name: 'xslt-param', type: parseXsltParam, typeLabel: '"<name>:<value>"', description: 'parameter for style-xslt with name and value separated by a colon (no whitespace); use environment variables by prefixing the parameter value with "env."', multiple: true },
   { name: 'gpkg', description: 'path to the GeoPackage file to create or update', defaultValue: 'tiles.gpkg' },
   { name: 'table', description: 'name of the tile table to create in the GeoPackage; defaults to the basename of the GeoPackage file without the .gpkg extension' },
   { name: 'table-label', description: 'human-readable short name of the tile table; the contents table \'identifier\' column' },
@@ -15,7 +33,7 @@ const commandLineOptions = [
 ];
 
 const args = commandLineArgs(commandLineOptions, { camelCase: true });
-const { help, bbox, zmin: minZoom, zmax: maxZoom, style, gpkg, table, tableLabel, tableDesc, scale } = args;
+const { help, bbox, zmin: minZoom, zmax: maxZoom, style, styleXslt: xslt, xsltParam: xsltParamList, gpkg, table, tableLabel, tableDesc, scale } = args;
 
 if (help || !(bbox && Number.isInteger(minZoom) && Number.isInteger(maxZoom))) {
   console.log(commandLineUsage([{ header: 'Usage:', optionList: commandLineOptions }]));
@@ -33,6 +51,7 @@ const mapnikPool = require('mapnik-pool')(mapnik);
 const mapTiles = require('global-mercator');
 const gpkgUtil = require('@ngageoint/geopackage');
 const untildify = require('untildify');
+const xsltproc = require('xsltproc');
 
 /**
  * Create a GeoPackage `BoundingBox` object from the given coordinates.
@@ -47,6 +66,7 @@ function gpkgBBoxForSWNE(west, south, east, north) {
 
 const stylePath = path.resolve(untildify(style));
 const styleDir = path.dirname(stylePath);
+const xsltPath = xslt ? path.resolve(untildify(xslt)) : null;
 const gpkgPath = path.resolve(untildify(gpkg)) + (/\.gpkg$/.test(gpkg) ? '' : '.gpkg');
 const gpkgDir = path.dirname(gpkgPath);
 const tableName = table || path.basename(gpkgPath).slice(0, -5);
@@ -131,56 +151,85 @@ const setContentsAttrs = function(gpkg) {
   return gpkg;
 };
 
-const mapPool = mapnikPool.fromString(fs.readFileSync(stylePath, 'utf-8'), { size: metaTileSize, bufferSize: 0 }, { base: styleDir });
-mapPool.acquireMap = function() {
-  return new Promise(function(resolve, reject) {
-    mapPool.acquire(function(err, map) {
-      if (err) {
-        reject(err);
-      }
-      else {
-        resolve(map);
-      }
+const applyMapnikStyleTransform = () => {
+  if (!xsltPath) {
+    return Promise.resolve(fs.readFileSync(stylePath, 'utf-8'));
+  }
+  return new Promise((resolve, reject) => {
+    console.log('transforming mapnik style with stylesheet ' + xsltPath + '...');
+    const transform = xsltproc.transform(xsltPath, stylePath, { stringparam: xsltParamList });
+    transform.stdout.on('data', function(data) {
+      resolve(data.toString('utf-8'));
+    });
+    transform.stderr.on('data', function(data) {
+      reject(data.toString('utf-8'));
     });
   });
-}.bind(mapPool);
+};
 
-mkdirp.sync(gpkgDir);
-
-gpkgUtil.create(gpkgPath)
-  .then(gpkg => gpkg, err => {
-    console.log('error opening geopackage: ' + err);
-    throw err;
-  })
-  .then(gpkg => {
-    return addTileMatrixSetInGeoPackage(gpkg);
-  })
-  .then(gpkg => {
-    return setContentsAttrs(gpkg);
-  })
-  .then(gpkg => {
-    for (let metaTile of allMetaTiles()) {
-      mapPool.acquireMap()
-      .then(function(map) {
-        map.zoomToBox(metaTile.bboxMeters());
-        const im = new mapnik.Image(metaTileSize, metaTileSize);
-        return new Promise((resolve, reject) => {
-          map.render(im, {scale: scale, variables: {zoom: metaTile.zoom}}, (err, im) => {
-            mapPool.release(map);
+const buildMapPool = () => {
+  return applyMapnikStyleTransform().then(
+    xformResult => {
+      const pool = mapnikPool.fromString(xformResult, { size: metaTileSize, bufferSize: 0 }, { base: styleDir });
+      pool.acquireMap = function() {
+        return new Promise(function(resolve, reject) {
+          pool.acquire(function(err, map) {
             if (err) {
               reject(err);
             }
             else {
-              resolve(im);
+              resolve(map);
             }
           });
         });
-      })
-      .catch(err => {
-        throw err;
-      })
-      .then(mapnikImage => {
-        return cutXYZTiles(metaTile, mapnikImage, gpkg);
-      });
-    }
-  });
+      }.bind(pool);
+      return pool;
+    },
+    err => {
+      throw err;
+    });
+};
+
+mkdirp.sync(gpkgDir);
+
+buildMapPool().then(mapPool => {
+  return gpkgUtil.create(gpkgPath)
+    .then(gpkg => gpkg, err => {
+      console.log('error opening geopackage: ' + err);
+      throw err;
+    })
+    .then(gpkg => {
+      return addTileMatrixSetInGeoPackage(gpkg);
+    })
+    .then(gpkg => {
+      return setContentsAttrs(gpkg);
+    })
+    .then(gpkg => {
+      for (let metaTile of allMetaTiles()) {
+        mapPool.acquireMap()
+        .then(function(map) {
+          map.zoomToBox(metaTile.bboxMeters());
+          const im = new mapnik.Image(metaTileSize, metaTileSize);
+          return new Promise((resolve, reject) => {
+            map.render(im, {scale: scale, variables: {zoom: metaTile.zoom}}, (err, im) => {
+              mapPool.release(map);
+              if (err) {
+                reject(err);
+              }
+              else {
+                resolve(im);
+              }
+            });
+          });
+        })
+        .catch(err => {
+          throw err;
+        })
+        .then(mapnikImage => {
+          return cutXYZTiles(metaTile, mapnikImage, gpkg);
+        });
+      }
+    });
+}, err => {
+  throw err;
+});

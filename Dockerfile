@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python3-pil \
         python3-gdal \
         gdal-bin \
+        xsltproc \
     && curl -sL -o /usr/share/fonts/truetype/noto/NotoEmoji-Regular.ttf https://github.com/googlei18n/noto-emoji/raw/master/fonts/NotoEmoji-Regular.ttf \
     && fc-cache -rv \
     && curl -sL https://deb.nodesource.com/setup_10.x | bash - \
