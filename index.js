@@ -17,13 +17,21 @@ const parseXsltParam = function(pair) {
   return { key: name, val: value };
 };
 
+const parseBBox = function(arg) {
+  argParts = arg.split(/\s/);
+  if (argParts.length != 4) {
+    throw 'invalid --bbox: ' + arg + '; expected 4 numeric values';
+  }
+  return argParts.map(parseFloat);
+};
+
 const commandLineOptions = [
   { name: 'help', type: Boolean, description: 'display this help message' },
-  { name: 'bbox', type: parseFloat, typeLabel: '<float>', multiple: true, description: 'bounding box in longitude/latitude values separated by spaces, <west> <south> <east> <north>' },
+  { name: 'bbox', type: parseBBox, typeLabel: '"<string>"', description: 'bounding box quoted string of space-separated numeric values; "<west> <south> <east> <north>"' },
   { name: 'zmin', type: parseInt, description: 'XYZ tile map minimum zoom level', typeLabel: '<int>' },
   { name: 'zmax', type: parseInt, description: 'XYZ tile map maximum zoom level', typeLabel: '<int>' },
   { name: 'style', description: 'path to the Mapnik XML style document' },
-  { name: 'style-xslt', description: 'path to an XML Stylesheet Language Transform (XSLT) document to transform the Mapnik XML style document' },
+  { name: 'xslt', description: 'path to an XML Stylesheet Language Transform (XSLT) document to transform the Mapnik XML style document' },
   { name: 'xslt-param', type: parseXsltParam, typeLabel: '"<name>:<value>"', description: 'parameter for style-xslt with name and value separated by a colon (no whitespace); use environment variables by prefixing the parameter value with "env."', multiple: true },
   { name: 'gpkg', description: 'path to the GeoPackage file to create or update', defaultValue: 'tiles.gpkg' },
   { name: 'table', description: 'name of the tile table to create in the GeoPackage; defaults to the basename of the GeoPackage file without the .gpkg extension' },
