@@ -10,6 +10,7 @@
     "@ngageoint/geopackage": "^2.0.7",
     "command-line-args": "^5.0.2",
     "command-line-usage": "^5.0.5",
+    "confabulous": "^1.6.0",
     "global-mercator": "^3.0.3",
     "mapnik": "^4.2.1",
     "mapnik-pool": "^0.1.3",
