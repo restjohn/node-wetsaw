@@ -68,16 +68,28 @@ const validateConfig = function(config) {
   return errors;
 };
 
-const configure = new Confabulous()
+new Confabulous()
   .add(config => Confabulous.loaders.env([
     Confabulous.processors.envToCamelCaseProp({ prefix: 'WETSAW_', filter: /^WETSAW_/ }),
     function(config, callback) {
+      if (config.bbox) {
+        config.bbox = parseBBox(config.bbox);
+      }
+      if (config.zoomMin) {
+        config.zoomMin = parseInt(config.zoomMin);
+      }
+      if (config.zoomMax) {
+        config.zoomMax = parseInt(config.zoomMax);
+      }
+      if (config.scale) {
+        config.scale = parseFloat(config.scale);
+      }
       if (config.xsltParam) {
         if (config.xsltParam.startsWith('[')) {
-          config.xsltParam = JSON.parse(config.xsltParam);
+          config.xsltParam = JSON.parse(config.xsltParam).map(parseXsltParam);
         }
         else {
-          config.xsltParam = [config.xsltParam];
+          config.xsltParam = [parseXsltParam(config.xsltParam)];
         }
       }
       callback(null, config);
