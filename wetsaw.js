@@ -161,13 +161,13 @@ class Task {
 
   cutXYZTiles(metaTile, metaImage) {
     const tileDao = this.gpkg.getTileDao(this.tableName);
-    for (let tile of metaTile.xyzTiles()) {
+    const tilesRemaining = Array.from(metaTile.xyzTiles()).map(tile => new Promise((resolve, reject) => {
       const [x, y] = tile;
       const px = (x - metaTile.x) * this.tileSize;
       const py = (y - metaTile.y) * this.tileSize;
       metaImage.view(px, py, this.tileSize, this.tileSize).encode('png', (err, buffer) => {
         if (err) {
-          throw err;
+          return reject(err);
         }
         console.log('adding tile ' + [x, y, metaTile.zoom]);
         if (tileDao.queryForTile(x, y, metaTile.zoom)) {
@@ -176,8 +176,10 @@ class Task {
         else {
           this.gpkg.addTile(buffer, this.tableName, metaTile.zoom, y, x);
         }
+        resolve();
       });
-    }
+    }));
+    return Promise.all(tilesRemaining);
   }
 
   processMetaTile(metaTile) {
@@ -214,7 +216,16 @@ class Task {
         yield this.processMetaTile(metaTile);
       }
     }.bind(this);
-    return Promise.all(metaTilePromises());
+    return Promise.all(metaTilePromises()).then(
+      _ => {
+        return this;
+      },
+      err => {
+        throw err;
+      })
+      .finally(() => {
+        this.pool.destroy()
+      });
   }
 }
 

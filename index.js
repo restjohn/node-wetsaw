@@ -118,7 +118,7 @@ new Confabulous()
       process.exit(1);
     }
     wetsaw(config).then(
-      _ => console.log('wetsaw complete'),
+      task => console.log('wetsaw complete: ' + task.gpkgPath),
       err => { throw err; });
   });
 
