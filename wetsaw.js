@@ -55,7 +55,7 @@ class Task {
     this.matrixSetBounds = gpkgBBoxForSWNE(...mapTiles.tileToBBoxMeters([0, 0, 0]));
     const bboxMeters = mapTiles.bboxToMeters(config.bbox);
     this.contentsBounds = gpkgBBoxForSWNE(...bboxMeters);
-    this.scale = config.scale;
+    this.scale = config.scale || 1.0;
     this.tileSize = 256 * this.scale;
     this.metaTileSize = 8 * this.tileSize;
     this.pool = null;
