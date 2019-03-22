@@ -120,7 +120,7 @@ class Task {
         }
       });
       for (let zoom in missingZoomLevels) {
-        this.gpkg.createStandardWebMercatorTileMatrix(matrixSetBounds, tileDao.tileMatrixSet, zoom, zoom, this.tileSize);
+        this.gpkg.createStandardWebMercatorTileMatrix(this.matrixSetBounds, tileDao.tileMatrixSet, zoom, zoom, this.tileSize);
       }
       return Promise.resolve(this.gpkg);
     }
