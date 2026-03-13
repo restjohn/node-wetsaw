@@ -1,0 +1,23 @@
+version: '3.0'
+services:
+
+  wetsaw:
+    image: 846311194563.dkr.ecr.us-east-1.amazonaws.com/moapps/wetsaw:latest
+    volumes:
+      - /Users/stjohnr/sandbox/openstreetmap-carto:/wetsaw-data/openstreetmap-carto
+      - .:/wetsaw-out
+    environment:
+      WETSAW_DB_HOST: 'localhost'
+      WETSAW_DB_NAME: 'gis'
+      WETSAW_DB_USER: 'postgres'
+      WETSAW_DB_PASS: ''
+      WETSAW_GPKG: '/wetsaw-out/wetsaw_test.gpkg'
+      WETSAW_STYLE: '/wetsaw-data/openstreetmap-carto/openstreetmap-carto.xml'
+      WETSAW_XSLT: '/wetsaw-out/postgis-params.xsl'
+      WETSAW_XSLT_PARAM: '["db.host:db", "db.name:gis", "db.user:postgres"]'
+      WETSAW_TABLE: 'docker_compose_test'
+      WETSAW_TABLE_DESC: 'Built from docker-compose'
+      WETSAW_TABLE_LABEL: 'docker-compose test'
+      WETSAW_BBOX: '-76.94 38.94 -76.8199 39.01' #'-76.6915 39.2346 -76.5235 39.3593'
+      WETSAW_ZOOM_MIN: '10'
+      WETSAW_ZOOM_MAX: '18'

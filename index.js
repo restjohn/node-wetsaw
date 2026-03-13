@@ -1,6 +1,7 @@
 const commandLineArgs = require('command-line-args');
 const commandLineUsage = require('command-line-usage');
 const Confabulous = require('confabulous');
+const log = require('./log');
 const wetsaw = require('./wetsaw');
 
 const parseXsltParam = function(pair) {
@@ -117,8 +118,9 @@ new Confabulous()
       ]));
       process.exit(1);
     }
+    log.info('starting wetsaw task with config:\n' + JSON.stringify(config, null, '  '));
     wetsaw(config).then(
-      task => console.log('wetsaw complete: ' + task.gpkgPath),
+      task => log.info('wetsaw complete: ' + task.gpkgPath),
       err => { throw err; });
   });
 

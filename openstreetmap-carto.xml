@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE Map[]>
+<Map background-color="#4e3521" srs="+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over">
+  <Parameters>
+    <Parameter name="scale">1</Parameter>
+    <Parameter name="metatile">2</Parameter>
+    <Parameter name="name"><![CDATA[OpenStreetMap Carto]]></Parameter>
+    <Parameter name="description"><![CDATA[A general-purpose OpenStreetMap mapnik style, in CartoCSS]]></Parameter>
+    <Parameter name="bounds">-180,-85.05112877980659,180,85.05112877980659</Parameter>
+    <Parameter name="center">0,0,4</Parameter>
+    <Parameter name="format"><![CDATA[png]]></Parameter>
+    <Parameter name="minzoom">0</Parameter>
+    <Parameter name="maxzoom">22</Parameter>
+  </Parameters>
+  <FontSet name="fontset-0">
+    <Font face-name="Noto Sans Regular" />
+    <Font face-name="Noto Sans CJK JP Regular" />
+  </FontSet>
+  <FontSet name="fontset-1">
+    <Font face-name="Noto Sans Italic" />
+    <Font face-name="Noto Sans Regular" />
+  </FontSet>
+  <Style filter-mode="first" name="country-names">
+    <Rule>
+      <MaxScaleDenominator>50000000</MaxScaleDenominator>
+      <MinScaleDenominator>25000000</MinScaleDenominator>
+      <Filter><![CDATA[([way_pixels] > 1000) and ([way_pixels] < 360000)]]></Filter>
+      <TextSymbolizer character-spacing="0.5" fill="#763076" fontset-name="fontset-0" halo-fill="rgba(2, 2, 2, 0.6)" halo-radius="1.5" line-spacing="-1.4" margin="7.7" placement="interior" size="11" wrap-width="40"><![CDATA[[name]]]></TextSymbolizer>
+    </Rule>
+    <Rule>
+      <MaxScaleDenominator>750000</MaxScaleDenominator>
+      <Filter><![CDATA[([way_pixels] > 1000) and ([way_pixels] < 360000)]]></Filter>
+      <TextSymbolizer character-spacing="0.5" fill="#763076" fontset-name="fontset-0" halo-fill="rgba(2, 2, 2, 0.6)" halo-radius="1.5" line-spacing="-0.7" margin="9.1" placement="interior" size="14" wrap-width="55"><![CDATA[[name]]]></TextSymbolizer>
+    </Rule>
+  </Style>
+  <Layer maximum-scale-denominator="200000000" name="country-names" srs="+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0.0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs +over">
+    <StyleName><![CDATA[country-names]]></StyleName>
+    <Datasource>
+      <Parameter name="type"><![CDATA[postgis]]></Parameter>
+      <Parameter name="dbname"><![CDATA[gis]]></Parameter>
+      <Parameter name="key_field"><![CDATA[]]></Parameter>
+      <Parameter name="geometry_field"><![CDATA[way]]></Parameter>
+      <Parameter name="extent"><![CDATA[-20037508,-20037508,20037508,20037508]]></Parameter>
+      <Parameter name="table"><![CDATA[(SELECT
+    way,
+    way_area/NULLIF(!pixel_width!::real*!pixel_height!::real,0) AS way_pixels,
+    name
+  FROM planet_osm_polygon
+  WHERE boundary = 'administrative'
+    AND admin_level = '2'
+    AND name IS NOT NULL
+    AND way_area > 100*!pixel_width!::real*!pixel_height!::real
+  ORDER BY way_area DESC
+) AS country_names]]></Parameter>
+      <Parameter name="password"><![CDATA[]]></Parameter>
+      <Parameter name="user"><![CDATA[postgres]]></Parameter>
+      <Parameter name="host"><![CDATA[db]]></Parameter>
+    </Datasource>
+  </Layer>
+  <Style filter-mode="first" name="capital-names">
+    <Rule>
+      <MaxScaleDenominator>6500000</MaxScaleDenominator>
+      <MinScaleDenominator>3000000</MinScaleDenominator>
+      <Filter><![CDATA[([population] > 600000) and ([dir] = 1)]]></Filter>
+      <ShieldSymbolizer dx="7" dy="7" file="symbols/place/place-capital-8.svg" fill="#ffffff" fontset-name="fontset-0" halo-fill="rgba(2, 2, 2, 0.6)" halo-radius="1.5" line-spacing="-0.6" margin="8.4" placement-type="simple" placements="N,S,E,W" size="12" unlock-image="true" wrap-width="60"><![CDATA[[name]]]></ShieldSymbolizer>
+    </Rule>
+  </Style>
+  <Layer name="not-postgis">
+    <Datasource>
+      <Parameter name="type">shapefile</Parameter>
+      <Parameter name="path">/hurr/derr.shp</Parameter>
+    </Datasource>
+  </Layer>
+</Map>

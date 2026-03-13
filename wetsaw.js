@@ -15,6 +15,7 @@ const mapTiles = require('global-mercator');
 const gpkgUtil = require('@ngageoint/geopackage');
 const untildify = require('untildify');
 const xsltproc = require('xsltproc');
+const log = require('./log');
 
 /**
  * Create a GeoPackage `BoundingBox` object from the given coordinates.
@@ -66,7 +67,8 @@ class Task {
       return Promise.resolve(fs.readFileSync(this.stylePath, 'utf-8'));
     }
     return new Promise((resolve, reject) => {
-      console.log('transforming mapnik style with stylesheet ' + this.xsltPath + '...');
+      log.info('transforming mapnik style with xslt ' + this.xsltPath + ' ...');
+
       const transform = xsltproc.transform(this.xsltPath, this.stylePath, { stringparam: this.xsltParams });
       let result = Buffer.alloc(0);
       transform.stdout.on('data', function(data) {
@@ -77,6 +79,7 @@ class Task {
       });
       transform.on('exit', (code, signal) => {
         if (code === 0) {
+          log.info('xslt transform complete');
           resolve(result.toString('utf-8'));
         }
         else {
@@ -89,6 +92,7 @@ class Task {
   buildMapnikPool() {
     return this.applyMapnikStyleTransform().then(
       xformResult => {
+        log.info('compiling mapnik style: ' + this.stylePath + ' ...');
         this.pool = mapnikPool.fromString(xformResult, { size: this.metaTileSize, bufferSize: 0 }, { base: this.styleDir });
         this.pool.acquireMap = function() {
           return new Promise((resolve, reject) => {
@@ -102,6 +106,7 @@ class Task {
             });
           });
         }.bind(this.pool);
+        log.info('mapnik style complete')
         return this.pool;
       },
       err => { throw err; });
@@ -144,34 +149,41 @@ class Task {
     }
     const result = contentsDao.update(contents);
     if (result.changes != 1) {
-      console.log('warning: failed to set contents label/description; ' + result.changes + ' contents rows affected');
+      log.warn('failed to set contents label/description; ' + result.changes + ' contents rows affected');
     }
     return this.gpkg;
   }
 
   prepareGeoPackage() {
+    log.info('preparing geopackage ' + this.gpkgPath + ' ...');
     return gpkgUtil.create(this.gpkgPath)
       .then(gpkg => this.gpkg = gpkg, err => {
-        console.log('error opening geopackage: ' + err);
+        log.error('failed to create or open geopackage: ' + err);
         throw err;
       })
       .then(_ => this.addTileMatrixSetInGeoPackage())
-      .then(_ => this.setContentsAttrs());
+      .then(_ => this.setContentsAttrs())
+      .then(_ => {
+        log.info('geopackage ready');
+        return this.gpkg;
+      });
   }
 
   cutXYZTiles(metaTile, metaImage) {
+    log.debug('cutting meta-tile image ' + metaTile + ' ...')
     const tileDao = this.gpkg.getTileDao(this.tableName);
     const tilesRemaining = Array.from(metaTile.xyzTiles()).map(tile => new Promise((resolve, reject) => {
       const [x, y] = tile;
       const px = (x - metaTile.x) * this.tileSize;
       const py = (y - metaTile.y) * this.tileSize;
+      log.debug(`extracting tile ${x}, ${y} from meta-tile image ${metaTile} ...`)
       metaImage.view(px, py, this.tileSize, this.tileSize).encode('png', (err, buffer) => {
         if (err) {
           return reject(err);
         }
-        console.log('adding tile ' + [x, y, metaTile.zoom]);
+        log.debug('adding tile ' + [x, y, metaTile.zoom]);
         if (tileDao.queryForTile(x, y, metaTile.zoom)) {
-          console.log('table ' + this.tableName + ' already contains tile ' + [x, y, metaTile.zoom]);
+          log.info('table ' + this.tableName + ' already contains tile ' + [x, y, metaTile.zoom]);
         }
         else {
           this.gpkg.addTile(buffer, this.tableName, metaTile.zoom, y, x);
@@ -179,10 +191,14 @@ class Task {
         resolve();
       });
     }));
-    return Promise.all(tilesRemaining);
+    return Promise.all(tilesRemaining).then(_ => {
+      log.debug(`meta-tile ${metaTile} complete`);
+      return metaTile;
+    });
   }
 
   processMetaTile(metaTile) {
+    log.debug('processing meta-tile ' + metaTile + ' ...');
     return this.pool.acquireMap()
       .then(map => {
         map.zoomToBox(metaTile.bboxMeters());
@@ -224,7 +240,7 @@ class Task {
         throw err;
       })
       .finally(() => {
-        this.pool.destroy()
+        return this.pool.destroy()
       });
   }
 }

@@ -24,7 +24,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && curl -sL https://deb.nodesource.com/setup_10.x | bash - \
     && apt-get install -y nodejs
 
+# WORKDIR /wetsaw
+# RUN (curl -sL https://github.com/restjohn/node-wetsaw/archive/master.tar.gz | tar --strip-components=1 -x -z) && npm install
+ADD . /wetsaw/
 WORKDIR /wetsaw
-RUN (curl -sL https://github.com/restjohn/node-wetsaw/archive/master.tar.gz | tar --strip-components=1 -x -z) && npm install
+RUN rm -rf node_modules && npm install
 
 ENTRYPOINT [ "node", "index.js" ]
